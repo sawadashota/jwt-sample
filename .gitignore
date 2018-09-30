@@ -1,0 +1,7 @@
+/vendor/
+.envrc
+/profile.html
+/profile
+
+certs/*
+!certs/.gitkeep

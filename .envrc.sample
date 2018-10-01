@@ -1,2 +1,2 @@
 export ID_RSA_PATH=/pathto/go/root/go/src/github.com/sawadashota/jwt-sample/certs/id_rsa
-export ID_RSA__PUBLIC_PATH=/pathto/go/root/go/src/github.com/sawadashota/jwt-sample/certs/id_rsa.pub.pkcs8
+export ID_RSA_PUBLIC_PATH=/pathto/go/root/go/src/github.com/sawadashota/jwt-sample/certs/id_rsa.pub.pkcs8

@@ -16,3 +16,9 @@ test:
 
 coverage:
 	docker-compose run --rm go go test -coverprofile=profile ./... && go tool cover -html=profile -o profile.html
+
+serve:
+	docker-compose up -d
+
+logs:
+	docker-compose logs

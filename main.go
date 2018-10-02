@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sawadashota/jwt-sample/middleware"
-
 	"github.com/sawadashota/jwt-sample/handler"
+	"github.com/sawadashota/jwt-sample/middleware"
+	"github.com/sawadashota/jwt-sample/route"
 )
 
 const (
@@ -33,35 +33,17 @@ func getEnvString(key, defaultValue string) string {
 }
 
 func main() {
-	auth := middleware.New(middleware.Auth)
-
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/login", post(handler.LoginHandler))
-	mux.HandleFunc("/hello", auth.Then(get(handler.PingHandler)))
+	middleware.New(mux).Group(
+		route.Post("/login", handler.LoginHandler),
+	)
 
-	fmt.Printf("Starting listen :%s...\n", port)
+	middleware.New(mux, middleware.Auth).Group(
+		route.Get("/hello", handler.PingHandler),
+		route.Get("/ping", handler.PingHandler),
+	)
+
+	log.Printf("Starting listen :%s...\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
-}
-
-func post(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Bad Request Method", http.StatusBadRequest)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	}
-}
-
-func get(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Bad Request Method", http.StatusBadRequest)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	}
 }

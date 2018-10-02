@@ -8,6 +8,7 @@ import (
 type middleware func(http.HandlerFunc) http.HandlerFunc
 
 type Stack struct {
+	mux         *http.ServeMux
 	middlewares []middleware
 }
 
@@ -22,6 +23,7 @@ const (
 func init() {
 	idRsaPublicPath = getEnvString("ID_RSA_PUBLIC_PATH", IdRsaPathPublicDefault)
 }
+
 func getEnvString(key, defaultValue string) string {
 	v := os.Getenv(key)
 	if v == "" {
@@ -31,13 +33,34 @@ func getEnvString(key, defaultValue string) string {
 	return v
 }
 
-func New(mws ...middleware) Stack {
-	return Stack{append([]middleware(nil), mws...)}
+func New(mux *http.ServeMux, mws ...middleware) *Stack {
+	return &Stack{
+		mux:         mux,
+		middlewares: append([]middleware{logger}, mws...),
+	}
 }
 
-func (m Stack) Then(h http.HandlerFunc) http.HandlerFunc {
-	for i := range m.middlewares {
-		h = m.middlewares[len(m.middlewares)-1-i](h)
+func (s Stack) Then(h http.HandlerFunc) http.HandlerFunc {
+	for i := range s.middlewares {
+		h = s.middlewares[len(s.middlewares)-1-i](h)
 	}
 	return h
+}
+
+type RouteRegister interface {
+	Pattern() string
+	Handler() http.HandlerFunc
+	WithMiddleware(handlerFunc http.HandlerFunc)
+}
+
+func (s Stack) Group(registers ...RouteRegister) []RouteRegister {
+	for _, register := range registers {
+		for i := range s.middlewares {
+			register.WithMiddleware(s.middlewares[len(s.middlewares)-1-i](register.Handler()))
+		}
+
+		s.mux.HandleFunc(register.Pattern(), register.Handler())
+	}
+
+	return registers
 }

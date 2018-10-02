@@ -1,4 +1,4 @@
-package handler_test
+package middleware_test
 
 import (
 	"bytes"
@@ -10,49 +10,89 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sawadashota/jwt-sample/middleware"
+
 	"github.com/sawadashota/jwt-sample/handler"
 )
 
-func TestRequireTokenAuthenticationHandler(t *testing.T) {
+func TestAuth(t *testing.T) {
 	lr := loginRequest(t)
 
 	cases := map[string]struct {
 		method       string
 		token        string
+		url          string
+		expectedBody string
 		expectStatus int
 	}{
 		"correct jwt token": {
 			method:       http.MethodPost,
 			token:        lr.Data.Token,
+			url:          "/ping",
+			expectedBody: "Pong",
 			expectStatus: http.StatusOK,
 		},
 		"incorrect jwt token": {
 			method:       http.MethodPost,
 			token:        "this_is_invalid_token",
+			url:          "/ping",
+			expectedBody: "Unauthorized\n",
 			expectStatus: http.StatusUnauthorized,
 		},
 		"empty authorization at header": {
 			method:       http.MethodPost,
 			token:        "",
+			url:          "/ping",
+			expectedBody: "Unauthorized\n",
 			expectStatus: http.StatusUnauthorized,
 		},
 	}
 
+	ts := httptest.NewServer(middleware.Auth(getPingHandler()))
+	defer ts.Close()
+
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(c.method, "/auth", nil)
-			r.Header.Add("Authorization", c.token)
-			handler.RequireTokenAuthenticationHandler(w, r)
 
-			rw := w.Result()
-			defer rw.Body.Close()
+			var u bytes.Buffer
+			u.WriteString(string(ts.URL))
+			u.WriteString(c.url)
 
-			if rw.StatusCode != c.expectStatus {
-				t.Errorf("bad response status. expect: %d but actual: %d", c.expectStatus, rw.StatusCode)
+			var client http.Client
+			req, err := http.NewRequest(c.method, u.String(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req.Header.Add("Authorization", c.token)
+
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if resp.StatusCode != c.expectStatus {
+				t.Errorf("bad response status. expect: %d but actual: %d", c.expectStatus, resp.StatusCode)
+			}
+
+			if string(b) != c.expectedBody {
+				t.Errorf("unexpected response body. expect: %s but actual: %s", c.expectedBody, string(b))
 			}
 		})
 	}
+}
+
+func getPingHandler() http.HandlerFunc {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Pong"))
+	}
+
+	return http.HandlerFunc(fn)
 }
 
 func loginRequest(t *testing.T) *handler.LoginResponse {

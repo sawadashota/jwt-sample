@@ -4,18 +4,15 @@ package handler
 import "os"
 
 var (
-	idRsaPath       string
-	idRsaPublicPath string
+	idRsaPath string
 )
 
 const (
-	IdRsaPathDefault       = "./certs/id_rsa"
-	IdRsaPathPublicDefault = "./certs/id_rsa.pub.pkcs8"
+	IdRsaPathDefault = "./certs/id_rsa"
 )
 
 func init() {
 	idRsaPath = getEnvString("ID_RSA_PATH", IdRsaPathDefault)
-	idRsaPublicPath = getEnvString("ID_RSA_PUBLIC_PATH", IdRsaPathPublicDefault)
 }
 
 func getEnvString(key, defaultValue string) string {

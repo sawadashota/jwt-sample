@@ -12,10 +12,10 @@ generate-certs:
 	ssh-keygen -f certs/id_rsa.pub -e -m pkcs8 > certs/id_rsa.pub.pkcs8
 
 test:
-	docker-compose run --rm go go test -v ./...
+	go test -v ./...
 
 coverage:
-	docker-compose run --rm go go test -coverprofile=profile ./... && go tool cover -html=profile -o profile.html
+	go test -coverprofile=profile ./... && go tool cover -html=profile -o profile.html
 
 serve:
 	docker-compose up -d
